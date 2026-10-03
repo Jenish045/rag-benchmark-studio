@@ -1,0 +1,31 @@
+# Core Python
+python-dotenv
+
+# Document processing
+pypdf
+
+# LangChain
+langchain
+langchain-community
+langchain-text-splitters
+
+# Embeddings and vector search
+sentence-transformers
+faiss-cpu
+
+# Keyword retrieval
+rank-bm25
+
+# Data processing
+numpy
+pandas
+
+# Evaluation
+# ragas
+
+# Web application and visualization
+streamlit
+plotly
+
+# Testing
+pytest
