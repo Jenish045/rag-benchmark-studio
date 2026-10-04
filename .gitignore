@@ -37,6 +37,7 @@ data/evaluation/*
 results/
 
 # Vector indexes
+data/indexes/
 *.faiss
 *.pkl
 *.index

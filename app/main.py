@@ -41,7 +41,10 @@ def load_pipeline_data():
 
     documents = chunking_result.chunks
 
-    dense = DenseRetriever(documents=documents)
+    dense = DenseRetriever(
+        documents=documents,
+        index_path="data/indexes/dense_faiss.index",
+    )
     bm25 = BM25Retriever(documents=documents)
     hybrid = HybridRetriever(dense_retriever=dense, bm25_retriever=bm25)
     reranker = CrossEncoderReranker()
@@ -119,6 +122,18 @@ def main():
 
     data = load_pipeline_data()
     pipelines = data["pipelines"]
+
+    with st.sidebar:
+        st.header("Pipeline Configuration")
+        st.markdown(f"**Indexed Documents:** {len(data['raw_documents'])}")
+        st.markdown(f"**Total Chunks:** {len(data['chunks'])}")
+        st.markdown("**Embedding Model:** `all-MiniLM-L6-v2`")
+        st.markdown("**Reranker:** `ms-marco-MiniLM-L-6-v2`")
+        st.markdown("**FAISS Index:** `Persistent (Cached)`")
+        if LLM_API_KEY:
+            st.success("LLM: Configured (Gemini)")
+        else:
+            st.warning("LLM: Not Configured")
 
     (
         chat_tab,

@@ -232,3 +232,64 @@ def test_get_default_llm_fails_without_api_key(monkeypatch):
 
     with pytest.raises(ValueError, match="LLM API key not found"):
         get_default_llm()
+
+
+def test_rag_generator_extracts_list_content_blocks():
+    class ListContentLLM:
+        def invoke(self, prompt):
+            class Response:
+                content = [{"type": "text", "text": "Extracted list answer"}]
+            return Response()
+
+    generator = RAGGenerator(llm=ListContentLLM())
+    result = generator.generate("What is attention?", create_documents())
+    assert result.answer == "Extracted list answer"
+
+
+def test_get_default_llm_selects_gemini(monkeypatch):
+    import rag_benchmark.generation.generator as gen_module
+    from rag_benchmark.generation.generator import get_default_llm
+
+    monkeypatch.setattr(gen_module, "LLM_API_KEY", "AQ.fake-gemini-key")
+    monkeypatch.setattr(gen_module, "LLM_MODEL", "Gemini API Key")
+
+    # Mock langchain_google_genai.ChatGoogleGenerativeAI
+    created_instances = []
+
+    class DummyGemini:
+        def __init__(self, model, google_api_key):
+            self.model = model
+            self.google_api_key = google_api_key
+            created_instances.append(self)
+
+    import sys
+    monkeypatch.setitem(sys.modules, "langchain_google_genai", type("Mod", (), {"ChatGoogleGenerativeAI": DummyGemini}))
+
+    llm = get_default_llm()
+    assert isinstance(llm, DummyGemini)
+    assert llm.model == "gemini-3.8-flash"
+    assert llm.google_api_key == "AQ.fake-gemini-key"
+
+
+def test_get_default_llm_selects_openai(monkeypatch):
+    import rag_benchmark.generation.generator as gen_module
+    from rag_benchmark.generation.generator import get_default_llm
+
+    monkeypatch.setattr(gen_module, "LLM_API_KEY", "sk-proj-fake-openai-key")
+    monkeypatch.setattr(gen_module, "LLM_MODEL", "gpt-4o")
+
+    created_instances = []
+
+    class DummyOpenAI:
+        def __init__(self, model, api_key):
+            self.model = model
+            self.api_key = api_key
+            created_instances.append(self)
+
+    import sys
+    monkeypatch.setitem(sys.modules, "langchain_openai", type("Mod", (), {"ChatOpenAI": DummyOpenAI}))
+
+    llm = get_default_llm()
+    assert isinstance(llm, DummyOpenAI)
+    assert llm.model == "gpt-4o"
+    assert llm.api_key == "sk-proj-fake-openai-key"

@@ -6,6 +6,8 @@ import numpy as np
 from langchain_core.documents import Document
 from sentence_transformers import SentenceTransformer
 
+from pathlib import Path
+
 from rag_benchmark.utils.config import DEFAULT_TOP_K
 
 
@@ -15,6 +17,7 @@ class DenseRetriever:
     model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
     top_k: int = DEFAULT_TOP_K
     embedding_model: Any | None = None
+    index_path: str | Path | None = None
 
     model: Any = field(init=False)
     index: faiss.Index = field(init=False)
@@ -31,12 +34,34 @@ class DenseRetriever:
         else:
             self.model = self.embedding_model
 
+        if self.index_path is not None and Path(self.index_path).exists():
+            if self.load_index(self.index_path):
+                return
+
         embeddings = self._encode(
             [document.page_content for document in self.documents]
         )
 
         self.index = faiss.IndexFlatIP(embeddings.shape[1])
         self.index.add(embeddings)
+
+        if self.index_path is not None:
+            self.save_index(self.index_path)
+
+    def save_index(self, filepath: str | Path) -> None:
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        faiss.write_index(self.index, str(path))
+
+    def load_index(self, filepath: str | Path) -> bool:
+        path = Path(filepath)
+        if not path.exists():
+            return False
+        loaded_index = faiss.read_index(str(path))
+        if loaded_index.ntotal != len(self.documents):
+            return False
+        self.index = loaded_index
+        return True
 
     def _encode(self, texts: list[str]) -> np.ndarray:
         embeddings = self.model.encode(

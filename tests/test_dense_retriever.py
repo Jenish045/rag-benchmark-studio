@@ -213,3 +213,38 @@ def test_dense_retriever_uses_real_model_by_default():
 
     assert len(results) == 1
     assert results[0].metadata["source"] == "ml.pdf"
+
+
+def test_dense_retriever_save_and_load_index(tmp_path):
+    documents = [
+        Document(
+            page_content="Transformers use attention mechanisms.",
+            metadata={"source": "test.pdf", "page": 0},
+        ),
+        Document(
+            page_content="Convolutional networks are useful for images.",
+            metadata={"source": "test.pdf", "page": 1},
+        ),
+    ]
+
+    index_file = tmp_path / "test_dense.index"
+    retriever = DenseRetriever(
+        documents=documents,
+        embedding_model=FakeEmbeddingModel(),
+        index_path=index_file,
+    )
+
+    assert index_file.exists()
+    assert retriever.index.ntotal == 2
+
+    # Second initialization loads from disk
+    loaded_retriever = DenseRetriever(
+        documents=documents,
+        embedding_model=FakeEmbeddingModel(),
+        index_path=index_file,
+    )
+    assert loaded_retriever.index.ntotal == 2
+
+    results = loaded_retriever.retrieve("attention", top_k=1)
+    assert len(results) == 1
+    assert results[0].metadata["source"] == "test.pdf"

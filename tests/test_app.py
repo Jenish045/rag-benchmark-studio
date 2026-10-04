@@ -30,3 +30,18 @@ def test_load_evaluation_queries():
     for q in queries:
         assert q.query
         assert q.relevant_sources
+
+
+def test_load_pipeline_data():
+    from app.main import load_pipeline_data
+
+    data = load_pipeline_data()
+    assert "pipelines" in data
+    assert "Dense" in data["pipelines"]
+    assert "BM25" in data["pipelines"]
+    assert "Hybrid" in data["pipelines"]
+    assert "Hybrid + Rerank" in data["pipelines"]
+    assert "raw_documents" in data
+    assert "chunks" in data
+    assert "reranker" in data
+    assert len(data["chunks"]) > 0

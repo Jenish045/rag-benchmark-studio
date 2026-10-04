@@ -15,6 +15,26 @@ def get_default_llm() -> Any:
             "LLM API key not found. Please set LLM_API_KEY in your environment or .env file."
         )
 
+    is_gemini = (
+        LLM_API_KEY.startswith("AQ")
+        or LLM_API_KEY.startswith("AIza")
+        or (LLM_MODEL and "gemini" in LLM_MODEL.lower())
+        or LLM_MODEL == "Gemini API Key"
+    )
+
+    if is_gemini:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        model = (
+            LLM_MODEL
+            if LLM_MODEL and LLM_MODEL != "Gemini API Key"
+            else "gemini-3.8-flash"
+        )
+        return ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=LLM_API_KEY,
+        )
+
     from langchain_openai import ChatOpenAI
 
     return ChatOpenAI(
@@ -91,6 +111,18 @@ class RAGGenerator:
 
         if isinstance(content, str):
             return content.strip()
+
+        if isinstance(content, list):
+            parts = []
+            for part in content:
+                if isinstance(part, str):
+                    parts.append(part)
+                elif isinstance(part, dict) and "text" in part:
+                    parts.append(part["text"])
+                elif hasattr(part, "text"):
+                    parts.append(part.text)
+            if parts:
+                return "\n".join(parts).strip()
 
         raise ValueError(
             "LLM response must be a string or contain string content."
