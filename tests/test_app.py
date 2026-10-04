@@ -20,3 +20,13 @@ def test_document_has_expected_metadata():
 
     assert document.metadata["source"] == "test.pdf"
     assert document.metadata["page_label"] == "1"
+
+
+def test_load_evaluation_queries():
+    from app.main import load_evaluation_queries
+    queries = load_evaluation_queries()
+    assert isinstance(queries, list)
+    assert len(queries) >= 4
+    for q in queries:
+        assert q.query
+        assert q.relevant_sources
