@@ -189,3 +189,27 @@ def test_dense_retriever_on_real_corpus():
         assert document.page_content.strip()
         assert "source" in document.metadata
         assert "page" in document.metadata
+
+
+def test_dense_retriever_uses_real_model_by_default():
+    documents = [
+        Document(
+            page_content="Transformers use attention mechanisms in deep learning.",
+            metadata={"source": "ml.pdf", "page": 1},
+        ),
+        Document(
+            page_content="Italian pizza recipe with tomato and mozzarella cheese.",
+            metadata={"source": "food.pdf", "page": 1},
+        ),
+    ]
+
+    # Initialize without embedding_model double to verify real model works
+    retriever = DenseRetriever(
+        documents=documents,
+        top_k=1,
+    )
+
+    results = retriever.retrieve("neural network attention")
+
+    assert len(results) == 1
+    assert results[0].metadata["source"] == "ml.pdf"

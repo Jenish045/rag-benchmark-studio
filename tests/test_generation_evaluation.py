@@ -181,3 +181,44 @@ def test_metrics_reject_empty_ground_truth():
             "",
             ["Some context."],
         )
+
+
+def test_context_relevance_detects_noise():
+    # Context relevance measures the proportion of context that is relevant.
+    # Irrelevant noise in contexts must reduce the score.
+    clean_score = context_relevance(
+        "Attention models relationships.",
+        ["Attention models relationships."],
+    )
+    noisy_score = context_relevance(
+        "Attention models relationships.",
+        ["Attention models relationships. Pizza sauce mozzarella cheese baking oven."],
+    )
+
+    assert clean_score == 1.0
+    assert noisy_score < 1.0
+
+
+def test_context_relevance_and_faithfulness_measure_different_concepts():
+    # Answer is fully supported by context (faithfulness == 1.0),
+    # but context contains extraneous noise (context_relevance < 1.0).
+    answer = "Attention models relationships."
+    contexts = ["Attention models relationships. Extraneous noisy text not related to query."]
+
+    faith_score = faithfulness(answer, contexts)
+    context_prec = context_relevance(answer, contexts)
+
+    assert faith_score == 1.0
+    assert context_prec < 1.0
+    assert faith_score != context_prec
+
+
+def test_metrics_reject_empty_reference():
+    with pytest.raises(
+        ValueError,
+        match="reference must be a non-empty string",
+    ):
+        context_relevance(
+            "",
+            ["Some context."],
+        )

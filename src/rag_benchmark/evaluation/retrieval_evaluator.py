@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import time
 from typing import Any
 
 from langchain_core.documents import Document
@@ -36,12 +37,16 @@ class RetrievalEvaluator:
 
         recall_scores = []
         hit_scores = []
+        latencies_ms = []
 
         for evaluation_query in evaluation_queries:
+            start_time = time.perf_counter()
             documents = self.retriever.retrieve(
                 evaluation_query.query,
                 top_k=k,
             )
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            latencies_ms.append(elapsed_ms)
 
             rankings.append(documents)
             relevant_sources_list.append(
@@ -71,4 +76,5 @@ class RetrievalEvaluator:
                 rankings,
                 relevant_sources_list,
             ),
+            latency_ms=sum(latencies_ms) / len(latencies_ms),
         )

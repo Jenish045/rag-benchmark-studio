@@ -48,3 +48,20 @@ class CrossEncoderReranker:
             documents[index]
             for index in ranked_indices
         ]
+
+
+@dataclass
+class RerankedRetriever:
+    base_retriever: Any
+    reranker: CrossEncoderReranker
+    initial_top_k: int = 10
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int | None = None,
+    ) -> list[Document]:
+        k = top_k or 5
+        fetch_k = max(k, self.initial_top_k)
+        candidates = self.base_retriever.retrieve(query, top_k=fetch_k)
+        return self.reranker.rerank(query, candidates, top_k=k)

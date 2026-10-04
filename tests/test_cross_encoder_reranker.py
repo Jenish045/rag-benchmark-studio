@@ -231,3 +231,32 @@ def test_reranker_uses_query_document_pairs():
     assert model.received_pairs == [
         ("What is attention?", "Attention mechanisms.")
     ]
+
+
+def test_reranked_retriever_composes_retrieval_and_reranking():
+    from rag_benchmark.reranking.cross_encoder_reranker import RerankedRetriever
+
+    class DummyRetriever:
+        def retrieve(self, query, top_k=5):
+            return [
+                Document(
+                    page_content="Images and pixels.",
+                    metadata={"source": "vision.pdf"},
+                ),
+                Document(
+                    page_content="Attention mechanisms.",
+                    metadata={"source": "attention.pdf"},
+                ),
+            ]
+
+    reranker = create_reranker()
+    pipeline = RerankedRetriever(
+        base_retriever=DummyRetriever(),
+        reranker=reranker,
+        initial_top_k=5,
+    )
+
+    results = pipeline.retrieve("attention", top_k=1)
+
+    assert len(results) == 1
+    assert results[0].metadata["source"] == "attention.pdf"

@@ -216,12 +216,14 @@ def test_report_to_records():
                 recall_at_k=0.8,
                 hit_rate_at_k=0.9,
                 mrr=0.7,
+                latency_ms=12.34,
             ),
             BenchmarkResult(
                 pipeline="BM25",
                 recall_at_k=0.7,
                 hit_rate_at_k=0.8,
                 mrr=0.6,
+                latency_ms=5.67,
             ),
         ]
     )
@@ -234,12 +236,14 @@ def test_report_to_records():
             "Recall@K": 0.8,
             "Hit Rate@K": 0.9,
             "MRR": 0.7,
+            "Latency (ms)": 12.34,
         },
         {
             "Pipeline": "BM25",
             "Recall@K": 0.7,
             "Hit Rate@K": 0.8,
             "MRR": 0.6,
+            "Latency (ms)": 5.67,
         },
     ]
 
@@ -266,3 +270,22 @@ def test_benchmark_report_preserves_result_order():
 
     assert records[0]["Pipeline"] == "First"
     assert records[1]["Pipeline"] == "Second"
+
+
+def test_benchmark_engine_measures_latency():
+    retriever = FakeRetriever(
+        [
+            document("attention.pdf"),
+        ]
+    )
+
+    engine = BenchmarkEngine(
+        pipelines={"Test": retriever},
+    )
+
+    report = engine.run(
+        evaluation_queries()[:1],
+        k=1,
+    )
+
+    assert report.results[0].latency_ms >= 0.0

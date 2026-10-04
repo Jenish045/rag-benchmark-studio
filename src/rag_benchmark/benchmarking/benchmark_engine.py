@@ -50,6 +50,7 @@ class BenchmarkEngine:
                     recall_at_k=metrics.recall_at_k,
                     hit_rate_at_k=metrics.hit_rate_at_k,
                     mrr=metrics.mrr,
+                    latency_ms=metrics.latency_ms,
                 )
             )
 

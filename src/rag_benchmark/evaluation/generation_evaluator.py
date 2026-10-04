@@ -44,7 +44,7 @@ class GenerationEvaluator:
 
             precision_scores.append(
                 context_relevance(
-                    sample.answer,
+                    sample.ground_truth,
                     sample.contexts,
                 )
             )

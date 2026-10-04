@@ -288,3 +288,25 @@ def test_retrieval_query_model():
     assert query.relevant_sources == [
         "attention_is_all_you_need.pdf"
     ]
+
+
+def test_retrieval_evaluator_measures_latency():
+    evaluator = RetrievalEvaluator(
+        retriever=FakeRetriever(),
+    )
+
+    queries = [
+        RetrievalQuery(
+            query="attention",
+            relevant_sources=[
+                "attention_is_all_you_need.pdf",
+            ],
+        ),
+    ]
+
+    metrics = evaluator.evaluate(
+        queries,
+        k=2,
+    )
+
+    assert metrics.latency_ms >= 0.0

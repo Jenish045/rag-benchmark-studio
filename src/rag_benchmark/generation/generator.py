@@ -6,21 +6,63 @@ from langchain_core.documents import Document
 from rag_benchmark.generation.context_builder import build_context
 from rag_benchmark.generation.models import GenerationResult
 from rag_benchmark.generation.prompt_builder import build_prompt
+from rag_benchmark.utils.config import LLM_API_KEY, LLM_MODEL
+
+
+def get_default_llm() -> Any:
+    if not LLM_API_KEY:
+        raise ValueError(
+            "LLM API key not found. Please set LLM_API_KEY in your environment or .env file."
+        )
+
+    from langchain_openai import ChatOpenAI
+
+    return ChatOpenAI(
+        model=LLM_MODEL or "gpt-4o-mini",
+        api_key=LLM_API_KEY,
+    )
 
 
 @dataclass
 class RAGGenerator:
-    llm: Any
+    llm: Any | None = None
+    retriever: Any | None = None
+    reranker: Any | None = None
 
     def generate(
         self,
         query: str,
-        documents: list[Document],
+        documents: list[Document] | None = None,
+        top_k: int | None = None,
     ) -> GenerationResult:
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("query must be a non-empty string.")
+
+        if documents is None:
+            if self.retriever is None:
+                raise ValueError(
+                    "No retrieved documents provided for generation."
+                )
+
+            documents = self.retriever.retrieve(
+                query,
+                top_k=top_k,
+            )
+
+            if self.reranker is not None:
+                documents = self.reranker.rerank(
+                    query,
+                    documents,
+                    top_k=top_k or len(documents),
+                )
+
         if not documents:
             raise ValueError(
                 "No retrieved documents provided for generation."
             )
+
+        if self.llm is None:
+            self.llm = get_default_llm()
 
         context = build_context(documents)
         prompt = build_prompt(query, context)

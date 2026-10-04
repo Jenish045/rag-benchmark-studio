@@ -36,17 +36,17 @@ def answer_relevance(
 
 
 def context_relevance(
-    answer: str,
+    reference: str,
     contexts: list[str],
 ) -> float:
-    _validate_text(answer, "answer")
+    _validate_text(reference, "reference")
 
     if not contexts:
         raise ValueError("contexts cannot be empty.")
 
-    answer_tokens = _tokens(answer)
+    reference_tokens = _tokens(reference)
 
-    if not answer_tokens:
+    if not reference_tokens:
         return 0.0
 
     context_tokens = set()
@@ -55,9 +55,12 @@ def context_relevance(
         _validate_text(context, "context")
         context_tokens.update(_tokens(context))
 
+    if not context_tokens:
+        return 0.0
+
     return len(
-        answer_tokens.intersection(context_tokens)
-    ) / len(answer_tokens)
+        reference_tokens.intersection(context_tokens)
+    ) / len(context_tokens)
 
 
 def context_recall(

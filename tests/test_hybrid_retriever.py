@@ -311,3 +311,49 @@ def test_constant_scores_are_handled():
         normalized,
         np.ones(3),
     )
+
+
+def test_zero_scores_are_handled():
+    scores = np.array([0.0, 0.0, 0.0])
+
+    normalized = HybridRetriever._normalize_scores(scores)
+
+    assert np.allclose(
+        normalized,
+        np.zeros(3),
+    )
+
+
+def test_hybrid_retriever_score_index_alignment():
+    # Document order: 0 is completely irrelevant, 1 is somewhat relevant, 2 is most relevant.
+    # Verifies that dense scores from FAISS search (which are ordered by rank)
+    # are correctly mapped back to their document indices rather than blindly aligned by rank.
+    documents = [
+        Document(
+            page_content="Cooking recipes for dinner and lunch meals.",
+            metadata={"source": "cooking.pdf"},
+        ),
+        Document(
+            page_content="Quantum computing and superposition physics.",
+            metadata={"source": "physics.pdf"},
+        ),
+        Document(
+            page_content="Transformers and attention mechanisms in machine learning.",
+            metadata={"source": "ml.pdf"},
+        ),
+    ]
+
+    dense, bm25 = create_retrievers(documents)
+
+    retriever = HybridRetriever(
+        dense_retriever=dense,
+        bm25_retriever=bm25,
+        dense_weight=0.5,
+        bm25_weight=0.5,
+    )
+
+    results = retriever.retrieve("attention transformer", top_k=3)
+
+    assert len(results) == 3
+    assert results[0].metadata["source"] == "ml.pdf"
+    assert results[-1].metadata["source"] == "cooking.pdf"

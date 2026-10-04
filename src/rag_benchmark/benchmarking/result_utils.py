@@ -10,6 +10,7 @@ def report_to_records(
             "Recall@K": result.recall_at_k,
             "Hit Rate@K": result.hit_rate_at_k,
             "MRR": result.mrr,
+            "Latency (ms)": round(result.latency_ms, 2),
         }
         for result in report.results
     ]

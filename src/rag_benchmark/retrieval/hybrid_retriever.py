@@ -41,6 +41,8 @@ class HybridRetriever:
         maximum = scores.max()
 
         if maximum == minimum:
+            if maximum == 0.0:
+                return np.zeros_like(scores)
             return np.ones_like(scores)
 
         return (scores - minimum) / (maximum - minimum)
@@ -61,22 +63,37 @@ class HybridRetriever:
         k = min(k, len(self.dense_retriever.documents))
 
         dense_documents = self.dense_retriever.documents
-        bm25_documents = self.bm25_retriever.documents
 
         dense_embeddings = self.dense_retriever._encode([query])
-        dense_scores, _ = self.dense_retriever.index.search(
+
+        dense_scores, dense_indices = self.dense_retriever.index.search(
             dense_embeddings,
             len(dense_documents),
         )
+
+        dense_scores = dense_scores[0]
+        dense_indices = dense_indices[0]
+
+        full_dense_scores = np.zeros(
+            len(dense_documents),
+            dtype=np.float32,
+        )
+
+        for score, index in zip(dense_scores, dense_indices):
+            if index >= 0:
+                full_dense_scores[index] = score
 
         bm25_scores = self.bm25_retriever.index.get_scores(
             self.bm25_retriever._tokenize(query)
         )
 
-        dense_scores = dense_scores[0]
+        dense_normalized = self._normalize_scores(
+            full_dense_scores
+        )
 
-        dense_normalized = self._normalize_scores(dense_scores)
-        bm25_normalized = self._normalize_scores(bm25_scores)
+        bm25_normalized = self._normalize_scores(
+            bm25_scores
+        )
 
         combined_scores = (
             self.dense_weight * dense_normalized

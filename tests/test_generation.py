@@ -162,3 +162,73 @@ def test_rag_generator_accepts_string_llm_response():
     assert result.answer == (
         "Attention allows models to focus on relevant information."
     )
+
+
+class FakeRetriever:
+    def __init__(self, documents):
+        self.documents = documents
+
+    def retrieve(self, query, top_k=5):
+        return self.documents[:top_k]
+
+
+class FakeReranker:
+    def rerank(self, query, documents, top_k=5):
+        # Reverse documents to verify reranker was executed
+        return list(reversed(documents))[:top_k]
+
+
+def test_rag_generator_end_to_end_with_retriever():
+    llm = FakeLLM()
+    retriever = FakeRetriever(create_documents())
+    generator = RAGGenerator(llm=llm, retriever=retriever)
+
+    result = generator.generate("What is attention?", top_k=2)
+
+    assert isinstance(result, GenerationResult)
+    assert result.answer == "Attention allows models to focus on relevant information."
+    assert "attention.pdf" in result.context
+    assert len(result.citations) == 2
+
+
+def test_rag_generator_end_to_end_with_reranker():
+    llm = FakeLLM()
+    retriever = FakeRetriever(create_documents())
+    reranker = FakeReranker()
+    generator = RAGGenerator(
+        llm=llm,
+        retriever=retriever,
+        reranker=reranker,
+    )
+
+    result = generator.generate("What is attention?", top_k=2)
+
+    assert isinstance(result, GenerationResult)
+    # The first citation should be transformers.pdf because reranker reversed the order
+    assert result.citations[0] == "transformers.pdf, page 5"
+
+
+def test_rag_generator_rejects_empty_query():
+    llm = FakeLLM()
+    generator = RAGGenerator(llm=llm)
+
+    with pytest.raises(ValueError, match="query must be a non-empty string"):
+        generator.generate("", create_documents())
+
+
+def test_rag_generator_rejects_no_retriever_and_no_documents():
+    llm = FakeLLM()
+    generator = RAGGenerator(llm=llm)
+
+    with pytest.raises(ValueError, match="No retrieved documents"):
+        generator.generate("What is attention?")
+
+
+def test_get_default_llm_fails_without_api_key(monkeypatch):
+    from rag_benchmark.generation.generator import get_default_llm
+    import rag_benchmark.generation.generator as gen_module
+
+    monkeypatch.setattr(gen_module, "LLM_API_KEY", None)
+
+    with pytest.raises(ValueError, match="LLM API key not found"):
+        get_default_llm()
