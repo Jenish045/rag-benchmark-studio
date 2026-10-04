@@ -6,7 +6,19 @@ load_dotenv()
 
 
 def get_env(name: str, default: str | None = None) -> str | None:
-    return os.getenv(name, default)
+    value = os.getenv(name)
+    if value:
+        return value
+
+    try:
+        import streamlit as st
+
+        if hasattr(st, "secrets") and name in st.secrets:
+            return str(st.secrets[name])
+    except Exception:
+        pass
+
+    return value if value is not None else default
 
 
 def get_int_env(name: str, default: int) -> int:

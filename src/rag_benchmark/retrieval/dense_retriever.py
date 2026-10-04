@@ -48,20 +48,27 @@ class DenseRetriever:
         if self.index_path is not None:
             self.save_index(self.index_path)
 
-    def save_index(self, filepath: str | Path) -> None:
-        path = Path(filepath)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        faiss.write_index(self.index, str(path))
+    def save_index(self, filepath: str | Path) -> bool:
+        try:
+            path = Path(filepath)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            faiss.write_index(self.index, str(path))
+            return True
+        except (OSError, IOError):
+            return False
 
     def load_index(self, filepath: str | Path) -> bool:
         path = Path(filepath)
         if not path.exists():
             return False
-        loaded_index = faiss.read_index(str(path))
-        if loaded_index.ntotal != len(self.documents):
+        try:
+            loaded_index = faiss.read_index(str(path))
+            if loaded_index.ntotal != len(self.documents):
+                return False
+            self.index = loaded_index
+            return True
+        except Exception:
             return False
-        self.index = loaded_index
-        return True
 
     def _encode(self, texts: list[str]) -> np.ndarray:
         embeddings = self.model.encode(
